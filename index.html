@@ -42,7 +42,7 @@
       </header>
       <main class="main">
         <div class="tracks">
-          <template x-for="track in tracks" :key="track.id">
+          <template x-for="(track, index) in tracks" :key="index">
             <div class="track">
               <div class="track-header">
                 <span class="track-name" x-text="track.name" @click="playSample(track)" style="cursor: pointer;"></span>
@@ -103,7 +103,6 @@
           
           tracks: [
             {
-              id: 1,
               name: 'Snare',
               sample: 'samples/SD.wav',
               sequence: 0, // Will be calculated from steps
@@ -115,7 +114,6 @@
               ]
             },
             {
-              id: 2,
               name: 'Kick',
               sample: 'samples/KD.wav',
               sequence: 0, // Will be calculated from steps
@@ -127,7 +125,6 @@
               ]
             },
             {
-              id: 3,
               name: 'Closed HH',
               sample: 'samples/CHH.wav',
               chokeGroup: 'hihat',
@@ -140,7 +137,6 @@
               ]
             },
             {
-              id: 4,
               name: 'Open HH',
               sample: 'samples/OHH.wav',
               chokeGroup: 'hihat',
@@ -153,7 +149,6 @@
               ]
             },
             {
-              id: 5,
               name: 'High Tom',
               sample: 'samples/HT.wav',
               sequence: 0, // Will be calculated from steps
@@ -164,20 +159,18 @@
                 { active: false }, { active: false }, { active: false }, { active: false }
               ]
             },
+            // {
+            //   name: 'Mid Tom',
+            //   sample: 'samples/MT.wav',
+            //   sequence: 0, // Will be calculated from steps
+            //   steps: [
+            //     { active: false }, { active: false }, { active: false }, { active: false },
+            //     { active: false }, { active: false }, { active: false }, { active: false },
+            //     { active: false }, { active: false }, { active: false }, { active: false },
+            //     { active: false }, { active: false }, { active: false }, { active: false }
+            //   ]
+            // },
             {
-              id: 6,
-              name: 'Mid Tom',
-              sample: 'samples/MT.wav',
-              sequence: 0, // Will be calculated from steps
-              steps: [
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false }
-              ]
-            },
-            {
-              id: 7,
               name: 'Low Tom',
               sample: 'samples/LT.wav',
               sequence: 0, // Will be calculated from steps
@@ -189,7 +182,6 @@
               ]
             },
             {
-              id: 8,
               name: 'Accent',
               sample: null, // Accent doesn't produce sound itself
               isAccent: true,
