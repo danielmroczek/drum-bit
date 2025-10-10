@@ -1,4 +1,4 @@
-## Bit Drums: 16-Bit Sequence Programming
+## Drum-Bit: 16-Bit Sequence Programming
 
 A simple web-based drum machine for creating beat patterns with classic drum samples. Application allows you to create and share drum patterns using **16-bit numbers** (0-65535). Each drum track can be programmed by entering a number where each bit represents one of the 16 steps in the sequence. This makes it incredibly easy to:
 

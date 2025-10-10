@@ -4,12 +4,12 @@
   <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Bit Drums</title>
+    <title>Drum-Bit</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Bit Drums" />
+    <meta property="og:title" content="Drum-Bit" />
     <meta property="og:description" content="🎛️ A web-based drum machine that lets you create and share beat patterns using 16-bit numbers." />
     <meta property="og:image" content="favicon.svg" />
     <meta property="og:image:width" content="512" />
@@ -18,7 +18,7 @@
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary" />
-    <meta property="twitter:title" content="Bit Drums" />
+    <meta property="twitter:title" content="Drum-Bit" />
     <meta property="twitter:description" content="🎛️ A web-based drum machine that lets you create and share beat patterns using 16-bit numbers." />
     <meta property="twitter:image" content="favicon.svg" />
     <meta property="twitter:image:width" content="512" />
@@ -36,7 +36,7 @@
           <i x-show="isPlaying" data-lucide="square" width="24" height="24" x-ref="stopIcon"></i>
         </button>
         <div class="controls">
-          <input class="bpm-input" type="number" x-model="bpm" min="60" max="200" />
+          <input class="bpm-input" type="number" x-model="bpm" min="20" max="240" />
           <button class="tap-button" @click="tapTempo()">TAP</button>
         </div>
       </header>
@@ -399,7 +399,7 @@
             const timeDiff = now - this.lastTap;
             const newBpm = Math.round(60000 / timeDiff);
             
-            if (newBpm >= 60 && newBpm <= 200) {
+            if (newBpm >= 20 && newBpm <= 240) {
               this.bpm = newBpm;
             }
             
