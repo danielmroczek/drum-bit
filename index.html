@@ -80,23 +80,7 @@
           </template>
         </div>
       </main>
-      <!-- <footer class="footer">
-        <div class="footer-nav">
-          <button class="nav-button active">
-            <i data-lucide="music" width="24" height="24" class="nav-icon"></i>
-            <span class="nav-text">Drums</span>
-          </button>
-          <button class="nav-button inactive">
-            <i
-              data-lucide="settings"
-              width="24"
-              height="24"
-              class="nav-icon"
-            ></i>
-            <span class="nav-text">Settings</span>
-          </button>
-        </div>
-      </footer> -->
+
     </div>
     <script>
       // Initialize Lucide icons once
@@ -112,6 +96,11 @@
           audioContext: null,
           audioBuffers: {},
           activeHiHat: null, // For choke group
+          
+          // Velocity configuration (easy to adjust)
+          normalVelocity: 1.0,    // Normal hit volume (1.0 = 100%)
+          accentVelocity: 1.75,    // Accented hit volume (1.5 = 150%)
+          
           tracks: [
             {
               id: 1,
@@ -198,6 +187,19 @@
                 { active: false }, { active: false }, { active: false }, { active: false },
                 { active: false }, { active: false }, { active: false }, { active: false }
               ]
+            },
+            {
+              id: 8,
+              name: 'Accent',
+              sample: null, // Accent doesn't produce sound itself
+              isAccent: true,
+              sequence: 0,
+              steps: [
+                { active: false }, { active: false }, { active: false }, { active: false },
+                { active: false }, { active: false }, { active: false }, { active: false },
+                { active: false }, { active: false }, { active: false }, { active: false },
+                { active: false }, { active: false }, { active: false }, { active: false }
+              ]
             }
           ],
           
@@ -237,8 +239,8 @@
           },
           
           // Play a sample with choke group support
-          playSample(track, when = 0) {
-            if (!this.audioContext || !this.audioBuffers[track.sample]) return;
+          playSample(track, when = 0, velocity = 1.0) {
+            if (!this.audioContext || !track.sample || !this.audioBuffers[track.sample]) return;
             
             // Handle choke groups (stop other sounds in the same group)
             if (track.chokeGroup) {
@@ -249,7 +251,13 @@
             
             const source = this.audioContext.createBufferSource();
             source.buffer = this.audioBuffers[track.sample];
-            source.connect(this.audioContext.destination);
+            
+            // Create a gain node for volume control
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = velocity;
+            
+            source.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
             source.start(when);
             
             // Store reference for choke group
@@ -264,8 +272,8 @@
           },
           
           // Play a sample at a scheduled time (for precise timing)
-          playScheduledSample(track, when) {
-            if (!this.audioContext || !this.audioBuffers[track.sample]) return;
+          playScheduledSample(track, when, velocity = 1.0) {
+            if (!this.audioContext || !track.sample || !this.audioBuffers[track.sample]) return;
             
             // Handle choke groups for scheduled playback
             if (track.chokeGroup === 'hihat' && this.activeHiHat) {
@@ -274,7 +282,13 @@
             
             const source = this.audioContext.createBufferSource();
             source.buffer = this.audioBuffers[track.sample];
-            source.connect(this.audioContext.destination);
+            
+            // Create a gain node for volume control
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = velocity;
+            
+            source.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
             source.start(when);
             
             // Store reference for choke group
@@ -344,9 +358,17 @@
               // Only schedule if we haven't already scheduled this step time
               const stepKey = Math.floor(this.nextStepTime * 1000); // Use time as key
               if (stepKey !== this.lastScheduledStep) {
+                // Check if accent is active on this step
+                const accentTrack = this.tracks.find(t => t.isAccent);
+                const isAccented = accentTrack && accentTrack.steps[stepIndex].active;
+                
+                // Use configurable velocity values
+                const velocity = isAccented ? this.accentVelocity : this.normalVelocity;
+                
                 this.tracks.forEach(track => {
-                  if (track.steps[stepIndex].active) {
-                    this.playScheduledSample(track, this.nextStepTime);
+                  // Skip the accent track itself (it doesn't produce sound)
+                  if (!track.isAccent && track.steps[stepIndex].active) {
+                    this.playScheduledSample(track, this.nextStepTime, velocity);
                   }
                 });
                 this.lastScheduledStep = stepKey;
