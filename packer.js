@@ -1,7 +1,9 @@
 // Constants
 const BITS_PER_NUMBER = 16;
 const MASK_16BIT = (1n << 16n) - 1n; // 0xFFFF
-const base62chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+// Current alphabet uses 64 URL-safe characters; feel free to expand/modify later.
+const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-";
+const BASE = BigInt(ALPHABET.length);
 
 /**
  * Combine an array of 16-bit numbers into a single BigInt
@@ -35,34 +37,34 @@ export function split(bigIntValue, count) {
 }
 
 /**
- * Bonus: Convert BigInt to Base62
+ * Convert a BigInt to a compact string using the active alphabet (currently 62 chars).
  * @param {bigint} num - BigInt to encode
- * @returns {string} Base62 encoded string
+ * @returns {string} Encoded string
  */
 export function encode(num) {
   if (num === 0n) return "0";
   
   let encoded = "";
   while (num > 0n) {
-    const remainder = Number(num % 62n);
-    encoded = base62chars[remainder] + encoded;
-    num = num / 62n;
+  const remainder = Number(num % BASE);
+  encoded = ALPHABET[remainder] + encoded;
+    num = num / BASE;
   }
   return encoded;
 }
 
 /**
- * Bonus: Convert Base62 back to BigInt
- * @param {string} encoded - Base62 encoded string
+ * Convert an encoded string (using the active alphabet) back into a BigInt.
+ * @param {string} encoded - Encoded string
  * @returns {bigint} Decoded BigInt
  */
 export function decode(encoded) {
   let result = 0n;
   
   for (const char of encoded) {
-    const value = base62chars.indexOf(char);
-    if (value === -1) throw new Error(`Invalid Base62 character: ${char}`);
-    result = result * 62n + BigInt(value);
+  const value = ALPHABET.indexOf(char);
+  if (value === -1) throw new Error(`Invalid encoded character: ${char}`);
+    result = result * BASE + BigInt(value);
   }
   return result;
 }
