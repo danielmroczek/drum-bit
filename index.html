@@ -26,17 +26,16 @@
     
     <link rel="stylesheet" href="styles.css" />
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   </head>
   <body class="dark">
-    <div class="container" x-data="drumMachine()" x-init="init()">
+    <div class="container" x-data="drumMachine()">
       <header class="header">
         <button class="play-button" @click="togglePlay()">
           <i x-show="!isPlaying" data-lucide="play" width="24" height="24" x-ref="playIcon"></i>
           <i x-show="isPlaying" data-lucide="square" width="24" height="24" x-ref="stopIcon"></i>
         </button>
         <div class="controls">
-          <input class="bpm-input" type="number" x-model="bpm" min="20" max="240" />
+          <input class="bpm-input" type="number" x-model="bpm" min="20" max="240" @input="updateURL()" />
           <button class="tap-button" @click="tapTempo()">TAP</button>
         </div>
       </header>
@@ -82,9 +81,12 @@
       </main>
 
     </div>
-    <script>
-      // Initialize Lucide icons once
-      lucide.createIcons();
+    <script type="module">
+      import { combine, split, encode, decode } from './packer.js';
+      import { default as Alpine } from 'https://cdn.jsdelivr.net/npm/alpinejs@3/+esm'
+
+      Alpine.data('drumMachine', drumMachine);
+      Alpine.start()
 
       // Alpine.js data
       function drumMachine() {
@@ -197,6 +199,11 @@
           
           // Initialize sequence numbers from step patterns
           async init() {
+            console.log('Initializing drum machine...');
+
+            // Load state from URL first
+            this.loadStateFromURL();
+            
             this.tracks.forEach(track => {
               this.updateSequenceFromSteps(track);
             });
@@ -205,6 +212,59 @@
             this.$nextTick(() => {
               lucide.createIcons();
             });
+          },
+          
+          // Load state from URL hash
+          loadStateFromURL() {
+            const hash = window.location.hash.substring(1); // Remove #
+            if (!hash) return;
+            
+            try {
+              // Decode base62 to BigInt
+              const bigIntValue = decode(hash);
+              
+              // Split into array: [BPM, Track1, Track2, ..., Track7]
+              // Total: 8 numbers (1 BPM + 7 tracks)
+              const numbers = split(bigIntValue, 8);
+              
+              // First number is BPM
+              const bpm = numbers[0];
+              if (bpm >= 20 && bpm <= 240) {
+                this.bpm = bpm;
+              }
+              
+              // Remaining numbers are track sequences
+              for (let i = 1; i < numbers.length && i - 1 < this.tracks.length; i++) {
+                const sequence = numbers[i];
+                if (sequence >= 0 && sequence <= 65535) {
+                  this.tracks[i - 1].sequence = sequence;
+                  this.updateStepsFromSequence(this.tracks[i - 1]);
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to load state from URL:', error);
+            }
+          },
+          
+          // Update URL with current state
+          updateURL() {
+            // Combine BPM and all track sequences into array
+            const numbers = [this.bpm];
+            this.tracks.forEach(track => {
+              numbers.push(track.sequence);
+            });
+            
+            // Combine into BigInt and encode to base62
+            const bigIntValue = combine(numbers);
+            const hash = encode(bigIntValue);
+            
+            // Update URL without reloading page
+            if (window.history.replaceState) {
+              const newURL = window.location.pathname + window.location.search + '#' + hash;
+              window.history.replaceState(null, '', newURL);
+            } else {
+              window.location.hash = hash;
+            }
           },
           
           // Initialize Web Audio API and load samples
@@ -382,6 +442,8 @@
             step.active = !step.active;
             // Update sequence number when step is toggled
             this.updateSequenceFromSteps(track);
+            // Update URL with new state
+            this.updateURL();
           },
           
           // Convert sequence number to step pattern
@@ -390,6 +452,8 @@
             for (let i = 0; i < 16; i++) {
               track.steps[i].active = (sequence & (1 << i)) !== 0;
             }
+            // Update URL when sequence is changed via input/slider
+            this.updateURL();
           },
           
           // Convert step pattern to sequence number
@@ -415,6 +479,7 @@
             
             if (newBpm >= 20 && newBpm <= 240) {
               this.bpm = newBpm;
+              this.updateURL();
             }
             
             this.lastTap = now;
@@ -425,6 +490,8 @@
             const randomSequence = Math.floor(Math.random() * 65536);
             track.sequence = randomSequence;
             this.updateStepsFromSequence(track);
+            // Update URL with new state
+            this.updateURL();
             // Refresh icons after DOM update
             this.$nextTick(() => {
               lucide.createIcons();
