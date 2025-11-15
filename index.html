@@ -107,93 +107,45 @@
             {
               name: 'Snare',
               sample: 'samples/SD.wav',
-              sequence: 0, // Will be calculated from steps
-              steps: [
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: true }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: true }, { active: false }, { active: false }, { active: false }
-              ]
+              sequence: 4112, // 0000100000001000 
             },
             {
               name: 'Kick',
               sample: 'samples/KD.wav',
-              sequence: 0, // Will be calculated from steps
-              steps: [
-                { active: true }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: true }, { active: false },
-                { active: true }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false }
-              ]
+              sequence: 321, // 1000001010000000
             },
             {
               name: 'Closed HH',
               sample: 'samples/CHH.wav',
               chokeGroup: 'hihat',
-              sequence: 0, // Will be calculated from steps
-              steps: [
-                { active: false }, { active: false }, { active: true }, { active: false },
-                { active: false }, { active: false }, { active: true }, { active: false },
-                { active: false }, { active: false }, { active: true }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false }
-              ]
+              sequence: 1092, // 0010001000100000
             },
             {
               name: 'Open HH',
               sample: 'samples/OHH.wav',
               chokeGroup: 'hihat',
-              sequence: 0, // Will be calculated from steps
-              steps: [
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: true }, { active: false }
-              ]
+              sequence: 16384, // 0000000000000010
             },
             {
               name: 'High Tom',
               sample: 'samples/HT.wav',
-              sequence: 0, // Will be calculated from steps
-              steps: [
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false }
-              ]
+              sequence: 0,
             },
             // {
             //   name: 'Mid Tom',
             //   sample: 'samples/MT.wav',
-            //   sequence: 0, // Will be calculated from steps
-            //   steps: [
-            //     { active: false }, { active: false }, { active: false }, { active: false },
-            //     { active: false }, { active: false }, { active: false }, { active: false },
-            //     { active: false }, { active: false }, { active: false }, { active: false },
-            //     { active: false }, { active: false }, { active: false }, { active: false }
-            //   ]
+            //   sequence: 0,
             // },
             {
               name: 'Low Tom',
               sample: 'samples/LT.wav',
-              sequence: 0, // Will be calculated from steps
-              steps: [
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false }
-              ]
+              sequence: 0,
             },
             {
               name: 'Accent',
               sample: null, // Accent doesn't produce sound itself
               isAccent: true,
               sequence: 0,
-              steps: [
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false },
-                { active: false }, { active: false }, { active: false }, { active: false }
-              ]
             }
           ],
           
@@ -201,12 +153,22 @@
           async init() {
             console.log('Initializing drum machine...');
 
-            // Load state from URL first
+            // Load state from URL first (if present, it will override default sequences)
             this.loadStateFromURL();
             
+            // Generate steps array from sequence numbers for all tracks
             this.tracks.forEach(track => {
-              this.updateSequenceFromSteps(track);
+              if (!track.steps) {
+                // Initialize empty steps array
+                track.steps = [];
+                for (let i = 0; i < 16; i++) {
+                  track.steps.push({ active: false });
+                }
+              }
+              // Use existing function to populate steps from sequence
+              this.updateStepsFromSequence(track);
             });
+            
             await this.initAudio();
             // Initialize icons after Alpine.js has rendered
             this.$nextTick(() => {
