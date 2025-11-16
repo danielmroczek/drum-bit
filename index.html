@@ -66,7 +66,7 @@
                   <div 
                     class="step"
                     :class="{
-                      'step-active': step.active,
+                      'step-active': step,
                       'playing': currentStep === index && isPlaying,
                       'step-group-light': Math.floor(index / 4) % 2 === 0,
                       'step-group-dark': Math.floor(index / 4) % 2 === 1
@@ -93,6 +93,7 @@
         return {
           isPlaying: false,
           bpm: 120,
+          numSteps: 16, 
           currentStep: 0,
           lastStepTime: 0,
           audioContext: null,
@@ -153,21 +154,22 @@
           async init() {
             console.log('Initializing drum machine...');
 
-            // Load state from URL first (if present, it will override default sequences)
-            this.loadStateFromURL();
-            
-            // Generate steps array from sequence numbers for all tracks
+            // Initialize empty steps arrays first
             this.tracks.forEach(track => {
               if (!track.steps) {
-                // Initialize empty steps array
-                track.steps = [];
-                for (let i = 0; i < 16; i++) {
-                  track.steps.push({ active: false });
-                }
+                track.steps = Array(this.numSteps).fill(false);
               }
-              // Use existing function to populate steps from sequence
-              this.updateStepsFromSequence(track);
             });
+
+            // Load state from URL (if present, it will override default sequences)
+            const urlLoaded = this.loadStateFromURL();
+            
+            // Only update steps from sequence for tracks not loaded from URL
+            if (!urlLoaded) {
+              this.tracks.forEach(track => {
+                this.updateStepsFromSequence(track);
+              });
+            }
             
             await this.initAudio();
             // Initialize icons after Alpine.js has rendered
@@ -179,7 +181,7 @@
           // Load state from URL hash
           loadStateFromURL() {
             const hash = window.location.hash.substring(1); // Remove #
-            if (!hash) return;
+            if (!hash) return false;
             
             try {
               // Decode base62 to BigInt
@@ -203,8 +205,10 @@
                   this.updateStepsFromSequence(this.tracks[i - 1]);
                 }
               }
+              return true; // Successfully loaded from URL
             } catch (error) {
               console.warn('Failed to load state from URL:', error);
+              return false;
             }
           },
           
@@ -348,7 +352,7 @@
             // Calculate current step from audio time (single source of truth)
             const stepDuration = 60 / this.bpm / 4;
             const elapsed = this.audioContext.currentTime - this.startTime;
-            const calculatedStep = Math.floor(elapsed / stepDuration) % 16;
+            const calculatedStep = Math.floor(elapsed / stepDuration) % this.numSteps;
             
             // Update visual step
             if (calculatedStep >= 0 && calculatedStep !== this.currentStep) {
@@ -367,21 +371,21 @@
             
             while (this.nextStepTime < this.audioContext.currentTime + lookAhead) {
               // Use the same calculation as visual step for consistency
-              const stepIndex = Math.floor((this.nextStepTime - this.startTime) / stepDuration) % 16;
+              const stepIndex = Math.floor((this.nextStepTime - this.startTime) / stepDuration) % this.numSteps;
               
               // Only schedule if we haven't already scheduled this step time
               const stepKey = Math.floor(this.nextStepTime * 1000); // Use time as key
               if (stepKey !== this.lastScheduledStep) {
                 // Check if accent is active on this step
                 const accentTrack = this.tracks.find(t => t.isAccent);
-                const isAccented = accentTrack && accentTrack.steps[stepIndex].active;
+                const isAccented = accentTrack && accentTrack.steps[stepIndex];
                 
                 // Use configurable velocity values
                 const velocity = isAccented ? this.accentVelocity : this.normalVelocity;
                 
                 this.tracks.forEach(track => {
                   // Skip the accent track itself (it doesn't produce sound)
-                  if (!track.isAccent && track.steps[stepIndex].active) {
+                  if (!track.isAccent && track.steps[stepIndex]) {
                     this.playScheduledSample(track, this.nextStepTime, velocity);
                   }
                 });
@@ -400,8 +404,7 @@
           },
           
           toggleStep(track, stepIndex) {
-            const step = track.steps[stepIndex];
-            step.active = !step.active;
+            track.steps[stepIndex] = !track.steps[stepIndex];
             // Update sequence number when step is toggled
             this.updateSequenceFromSteps(track);
             // Update URL with new state
@@ -411,8 +414,8 @@
           // Convert sequence number to step pattern
           updateStepsFromSequence(track) {
             const sequence = parseInt(track.sequence) || 0;
-            for (let i = 0; i < 16; i++) {
-              track.steps[i].active = (sequence & (1 << i)) !== 0;
+            for (let i = 0; i < this.numSteps; i++) {
+              track.steps[i] = (sequence & (1 << i)) !== 0;
             }
             // Update URL when sequence is changed via input/slider
             this.updateURL();
@@ -421,8 +424,8 @@
           // Convert step pattern to sequence number
           updateSequenceFromSteps(track) {
             let sequence = 0;
-            for (let i = 0; i < 16; i++) {
-              if (track.steps[i].active) {
+            for (let i = 0; i < this.numSteps; i++) {
+              if (track.steps[i]) {
                 sequence |= (1 << i);
               }
             }
